@@ -3,7 +3,7 @@ import time
 import json
 import paho.mqtt.client as mqtt
 
-# [설정] 핀 번호 및 MQTT 정보
+# [설정] 기존 핀 번호 및 MQTT 정보 유지
 TRIG = 5
 ECHO = 6
 MQTT_BROKER = "192.168.0.25"
@@ -15,64 +15,58 @@ GPIO.setup(TRIG, GPIO.OUT)
 GPIO.setup(ECHO, GPIO.IN)
 
 def get_distance():
-    """초음파 거리 측정 (타임아웃 포함)"""
+    """초음파 거리 측정 (타임아웃 로직 개선)"""
     GPIO.output(TRIG, GPIO.LOW)
     time.sleep(0.01)
     GPIO.output(TRIG, GPIO.HIGH)
     time.sleep(0.00001)
     GPIO.output(TRIG, GPIO.LOW)
     
-    # ECHO 신호 대기 (최대 0.05초)
-    timeout = time.time() + 0.05
-    pulse_start = time.time()
+    # 신호 시작 대기
+    start_wait = time.time()
     while GPIO.input(ECHO) == GPIO.LOW:
         pulse_start = time.time()
-        if pulse_start > timeout: return 999  # 측정 실패 시 먼 거리값 반환
+        if pulse_start - start_wait > 0.1: return 999
 
-    timeout = time.time() + 0.05
-    pulse_end = time.time()
+    # 신호 종료 대기
+    end_wait = time.time()
     while GPIO.input(ECHO) == GPIO.HIGH:
         pulse_end = time.time()
-        if pulse_end > timeout: return 999
+        if pulse_end - end_wait > 0.1: return 999
 
-    distance = (pulse_end - pulse_start) * 34300 / 2
-    return distance
+    return (pulse_end - pulse_start) * 34300 / 2
 
 def main():
     last_send_time = 0 
+    client = mqtt.Client()
     
     try:
-        client = mqtt.Client()
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        client.loop_start() # MQTT 연결 유지 루프 시작
-        print(f"--- 센서 감시 시작 (핀: T{TRIG}, E{ECHO}) ---")
+        client.loop_start()
+        print(f"--- 센서 감시 중 (Topic: {MQTT_TOPIC}, 기준: 10cm) ---")
 
         while True:
             dist = get_distance()
             curr_time = time.time()
 
-            # 1. 11cm 이내 감지 (1cm 마진 포함)
-            if dist < 11:
-                # 2. 마지막 전송으로부터 25초가 지났는지 확인
+            # 1. 10cm 이내 감지 시
+            if dist <= 10.0:
+                # 2. 25초 간격 제한 (중복 발신 방지)
                 if curr_time - last_send_time >= 25:
-                    message = True
-                    client.publish(MQTT_TOPIC, json.dumps(message))
+                    # JSON 형식으로 True 전송
+                    client.publish(MQTT_TOPIC, json.dumps(True))
                     
-                    print(f"[{time.strftime('%H:%M:%S')}] 물체 감지({dist:.1f}cm)! 메시지 전송 완료.")
-                    print(f"앞으로 25초간 재발신을 중단합니다.")
-                    
-                    last_send_time = curr_time # 기준 시간 업데이트
+                    print(f"[{time.strftime('%H:%M:%S')}] 물체 감지({dist:.1f}cm)! 'True' 전송 완료.")
+                    last_send_time = curr_time 
 
-            # 센서 측정 주기 (0.5초 정도로 하면 반응이 빠릅니다)
-            time.sleep(0.5)
+            time.sleep(0.2) # 반응 속도를 위해 측정 주기 0.2초로 단축
 
     except KeyboardInterrupt:
-        print("\n사용자에 의해 종료됨")
+        print("\n종료합니다.")
     finally:
         client.loop_stop()
         client.disconnect()
         GPIO.cleanup()
-        print("GPIO 정리 완료.")
 
 if __name__ == "__main__":
     main()
