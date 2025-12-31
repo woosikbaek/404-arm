@@ -1,0 +1,25 @@
+# Python 캐시 및 컴파일 파일
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 가상환경 (가장 중요)
+venv/
+ENV/
+env/
+.venv/
+
+# 운영체제 관련 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VS Code 설정 폴더
+.vscode/
+
+# 로그 파일
+*.log
+
+# 임시 파일 및 캐시
+.cache/
+.pytest_cache/
