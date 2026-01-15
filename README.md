@@ -2,6 +2,14 @@
 
 이 프로젝트는 **초음파 센서**, **컨베이어 벨트**, 그리고 **4축 로봇팔**을 MQTT 통신을 통해 유기적으로 제어하는 스마트 팩토리 자동화 시스템입니다.
 
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=gPBmVkVSfhc">
+    <img src="https://img.youtube.com/vi/gPBmVkVSfhc/maxresdefault.jpg" width="80%" alt="404found 2차 프로젝트 시연영상">
+    <br>
+    <img src="https://img.shields.io/badge/YouTube-Watch_Video-red?style=for-the-badge&logo=youtube" alt="Youtube Button">
+  </a>
+</div>
+
 ## 📁 프로젝트 구성 파일
 1. `ultrasonic_sensor_1.py`: 첫 번째 지점의 물체를 감지하여 MQTT 신호를 송신합니다. (핀 5, 6)
 2. `robotic_arm_control.py`: 두 번째 초음파 센서로 물체를 감지하고, 로봇팔의 Pick & Place 시퀀스를 실행합니다. (핀 17, 27 / 서보 26, 24, 16, 4)
